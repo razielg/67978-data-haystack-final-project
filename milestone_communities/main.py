@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import networkx as nx
 import itertools
 
 from data.datasets import get_all_votes, VoteResultType
@@ -47,6 +48,16 @@ def create_connection_graph(tristate_vote_matrix: np.array) -> np.array:
     return weighted_agreement_matrix
 
 
+def detect_communities(connections_matrix: np.array) -> np.array:
+    n, n_ = connections_matrix.shape
+    assert n == n_
+
+    G: nx.Graph = nx.generators.complete_graph(n)
+    G.add_weighted_edges_from(
+        ((i, j, connections_matrix[i, j]) for i, j in itertools.product(range(n), repeat=2) if i < j))
+    return nx.community.louvain_communities(G)
+
+
 def main():
     all_votes = get_all_votes()
     pivot = pivot_results(
@@ -57,7 +68,18 @@ def main():
 
     as_tristate = np.zeros_like(pivot, dtype=int) + (pivot == VoteResultType.FOR.value) - (
             pivot == VoteResultType.AGAINST.value)
-    conns = create_connection_graph(as_tristate)
+    connection_matrix = create_connection_graph(as_tristate)
+
+    # list of index sets representing the communities
+    communities: list[set[int]] = detect_communities(connection_matrix)
+
+    # results for 23rd Knesset, compared to https://he.wikipedia.org/wiki/הכנסת_העשרים_ושלוש
+    # community #1: 72 members, matches government
+    # community #2: 48 members, matches opposition
+    # community #3: 22 members, I'm not sure, maybe the Norwegian guys?
+    # A total of 142 = 120 + 22 nodes
+    print(f"{len(communities) = }")
+    print(*[f"{i = } | {len(c) = }" for i, c in enumerate(communities)], sep="\n")
 
     return 0
 
