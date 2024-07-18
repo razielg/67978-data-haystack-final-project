@@ -59,14 +59,23 @@ def detect_communities(connections_matrix: np.array) -> np.array:
 
 
 def main():
-    all_votes = get_all_votes()
-    pivot = pivot_results(
-        all_votes,
+    all_votes: pd.DataFrame = get_all_votes()
+
+    # for boundaries of 23rd Knesset, see following:
+    # https://knesset.gov.il/Odata/Votes.svc/vote_rslts_kmmbr_shadow?$orderby=vote_id&$format=json&$select=vote_id&$top=1&$filter=knesset_num%20eq%2023 (32034)
+    # https://knesset.gov.il/Odata/Votes.svc/vote_rslts_kmmbr_shadow?$orderby=vote_id%20desc&$format=json&$select=vote_id&$top=1&$filter=knesset_num%20eq%2023 (34042)
+    twenty_third_knesset_vote_ids = range(32_034, 34_042 + 1)
+    twenty_third_knesset_votes = all_votes[all_votes["vote_id"].isin(twenty_third_knesset_vote_ids)]
+
+    # swap to MK x MK aggregation. `kmmbr_id`s are lost but can be easily reconstructed.
+    pivot: np.array = pivot_results(
+        twenty_third_knesset_votes,
         allowed_vote_values={VoteResultType.FOR.value, VoteResultType.AGAINST.value},
         min_votes=15,
     )
 
-    as_tristate = np.zeros_like(pivot, dtype=int) + (pivot == VoteResultType.FOR.value) - (
+    # +/-1 for support/oppose, 0 otherwise
+    as_tristate: np.array = np.zeros_like(pivot, dtype=int) + (pivot == VoteResultType.FOR.value) - (
             pivot == VoteResultType.AGAINST.value)
     connection_matrix = create_connection_graph(as_tristate)
 
