@@ -51,6 +51,13 @@ def get_all_mk_ids(logger, kvg: KnessetVotesCollector):
     logger.info("Done")
 
 
+def get_all_vip_ids(logger, kvg: KnessetVotesCollector):
+    logger.info("Starting to fetch all MK VIP ids")
+    res = kvg.get_all_vip_ids()
+    res.to_csv(os.path.join(RESULTS_DIR, f"vip_ids.csv"))
+    logger.info("Done")
+
+
 def main():
 
     logger = setup_logger()
@@ -61,7 +68,7 @@ def main():
         pass
 
     kvg = KnessetVotesCollector(KNESSET_VOTES_SVC, logger)
-    get_all_mk_ids(logger, kvg)
+    get_all_vip_ids(logger, kvg)
 
 
 if __name__ == '__main__':
