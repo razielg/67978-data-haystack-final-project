@@ -125,6 +125,7 @@ def main():
     # A total of 142 = 120 + 22 nodes
     print(f"{len(communities) = }")
     print(*[f"{i = } | {len(c) = }" for i, c in enumerate(communities)], sep="\n")
+    print(*[f"Community #{i + 1} | {[G.nodes[idx]['name'] for idx in c]}" for i, c in enumerate(communities)], sep="\n")
 
     return 0
 
