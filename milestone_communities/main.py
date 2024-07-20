@@ -3,7 +3,7 @@ import numpy as np
 import networkx as nx
 import itertools
 
-from data.datasets import get_all_votes, VoteResultType, get_all_vip_ids
+from data.datasets import get_all_votes, VoteResultType, get_all_vip_ids, get_knesset23_is_coalition
 from visualization import plot_graph_with_color
 
 
@@ -56,7 +56,9 @@ def compute_connections(tristate_vote_matrix: np.array) -> np.array:
 
 
 def create_connection_graph(
-        connections_matrix: np.array, vip_ids: list[int], vip_ids_and_names_dataframe: pd.DataFrame) -> nx.Graph:
+        connections_matrix: np.array, vip_ids: list[int], vip_ids_and_names_dataframe: pd.DataFrame,
+        is_coalition_df: pd.DataFrame,
+) -> nx.Graph:
     """
     :param connections_matrix: Adjacency matrix, as returned by `create_connection_graph()`
     :param vip_ids: Translation from matrix index to kmmbr_id.
@@ -70,8 +72,12 @@ def create_connection_graph(
         lambda row: f"{row['mk_individual_first_name_eng']} {row['mk_individual_name_eng']}", axis=1)
     filtered_df = df[df["vip_id"].isin(vip_ids)]
     full_names = filtered_df.set_index("vip_id").loc[vip_ids]["full_name"].tolist()
+    filtered_iscoalition_df = is_coalition_df[is_coalition_df["Name"].isin(full_names)]
+    is_coalition_flags = filtered_iscoalition_df.set_index("Name").loc[full_names]["IsCoalition"].tolist()
 
-    nodes = [(vip_id, {"name": full_name}) for vip_id, full_name in zip(vip_ids, full_names)]
+
+    nodes = [(vip_id, {"name": full_name, "is_coalition": is_coalition}) for vip_id, full_name, is_coalition in zip(
+        vip_ids, full_names, is_coalition_flags)]
 
     G: nx.Graph = nx.Graph()
     G.add_nodes_from(nodes)
@@ -113,7 +119,8 @@ def main():
 
     # list of index sets representing the communities
     vip_ids_and_names_dataframe = get_all_vip_ids()
-    G: nx.Graph = create_connection_graph(connection_matrix, idx_to_vip_id, vip_ids_and_names_dataframe)
+    is_coalition_df = get_knesset23_is_coalition()
+    G: nx.Graph = create_connection_graph(connection_matrix, idx_to_vip_id, vip_ids_and_names_dataframe, is_coalition_df)
     communities: list[set[int]] = detect_communities(G)
 
     plot_graph_with_color(G, communities)
