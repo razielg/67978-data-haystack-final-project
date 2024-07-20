@@ -5,7 +5,7 @@ from odata_client import (ResponseParser, QueryRequestFailedException, QueryRequ
                           SingleQueryResult, OdataQuerier)
 
 
-class VotesResponseParser(ResponseParser):
+class KnessetResponseParser(ResponseParser):
 
     @staticmethod
     def _check_status(response_status: int):
@@ -36,12 +36,16 @@ class KnessetVotesCollector:
     """
     def __init__(self, svc_url: str, logger):
         self.svc_url = svc_url
-        self.querier = OdataQuerier(svc_url=svc_url, parser=VotesResponseParser(), logger=logger)
+        self.querier = OdataQuerier(svc_url=svc_url, parser=KnessetResponseParser(), logger=logger)
         self.logger = logger
 
     def get_all_mk_ids(self):
-        # TODO
-        pass
+        return self.querier.do_query(
+            "View_Vote_MK_Individual"
+            "?$select=mk_individual_id,mk_individual_name_eng,mk_individual_first_name_eng"
+            "&$orderby=mk_individual_id"
+            "&$format=json"
+        )
 
     def get_all_vote_ids(self):
         # TODO

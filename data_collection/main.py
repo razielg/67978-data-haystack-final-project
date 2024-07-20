@@ -25,17 +25,8 @@ def setup_logger():
     return logger
 
 
-def main():
-
-    logger = setup_logger()
-
-    try:
-        os.mkdir(RESULTS_DIR)
-    except FileExistsError:
-        pass
-
-    kvg = KnessetVotesCollector(KNESSET_VOTES_SVC, logger)
-    logger.info("Created votes collector, starting to fetch all votes by range")
+def get_all_votes(logger, kvg: KnessetVotesCollector):
+    logger.info("Starting to fetch all votes by range, this might take a long time (up to ~4h)")
 
     votes_per_chunk = 1_000
     for i in tqdm.tqdm(range(0, MAX_VOTE_ID, votes_per_chunk)):
@@ -51,6 +42,26 @@ def main():
             continue
 
     logger.info("Done")
+
+
+def get_all_mk_ids(logger, kvg: KnessetVotesCollector):
+    logger.info("Starting to fetch all MK ids")
+    res = kvg.get_all_mk_ids()
+    res.to_csv(os.path.join(RESULTS_DIR, f"mk_ids.csv"))
+    logger.info("Done")
+
+
+def main():
+
+    logger = setup_logger()
+
+    try:
+        os.mkdir(RESULTS_DIR)
+    except FileExistsError:
+        pass
+
+    kvg = KnessetVotesCollector(KNESSET_VOTES_SVC, logger)
+    get_all_mk_ids(logger, kvg)
 
 
 if __name__ == '__main__':
