@@ -4,6 +4,7 @@ import networkx as nx
 import itertools
 
 from data.datasets import get_all_votes, VoteResultType
+from visualization import plot_graph_with_color
 
 
 def pivot_results(vote_results: pd.DataFrame, allowed_vote_values: set, min_votes: int) -> np.array:
@@ -57,7 +58,6 @@ def detect_communities(connections_matrix: np.array) -> np.array:
         ((i, j, connections_matrix[i, j]) for i, j in itertools.product(range(n), repeat=2) if i < j))
     return nx.community.louvain_communities(G)
 
-
 def main():
     all_votes: pd.DataFrame = get_all_votes()
 
@@ -81,6 +81,8 @@ def main():
 
     # list of index sets representing the communities
     communities: list[set[int]] = detect_communities(connection_matrix)
+
+    plot_graph_with_color(connection_matrix, communities)
 
     # results for 23rd Knesset, compared to https://he.wikipedia.org/wiki/הכנסת_העשרים_ושלוש
     # community #1: 72 members, matches government
