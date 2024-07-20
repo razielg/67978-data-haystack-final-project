@@ -42,6 +42,10 @@ def create_connection_graph(tristate_vote_matrix: np.array) -> np.array:
     weighted_agreement_matrix = np.zeros((n_mks, n_mks))
     for mk1, mk2 in itertools.product(range(n_mks), repeat=2):
         # TODO we don't count disagreements
+
+        if mk1 == mk2:
+            continue
+
         weighted_agreement_matrix[mk1, mk2] = \
             ((tristate_vote_matrix[mk1, :] * tristate_vote_matrix[mk2, :]) == 1).sum() \
             * (weights_per_mk_vote[mk1] + weights_per_mk_vote[mk2])
@@ -57,6 +61,7 @@ def detect_communities(connections_matrix: np.array) -> np.array:
     G.add_weighted_edges_from(
         ((i, j, connections_matrix[i, j]) for i, j in itertools.product(range(n), repeat=2) if i < j))
     return nx.community.louvain_communities(G)
+
 
 def main():
     all_votes: pd.DataFrame = get_all_votes()
