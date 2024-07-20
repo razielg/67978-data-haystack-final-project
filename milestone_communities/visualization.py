@@ -34,9 +34,7 @@ def generate_colors(num_colors):
     return colors
 
 
-def plot_graph_with_color(connection_matrix: nx.Graph, communities):
-    G = nx.from_numpy_array(np.copy(connection_matrix))
-
+def plot_graph_with_color(G: nx.Graph, communities):
     # # Define a color for each community
     # colors = ['red', 'blue', 'green']
     # Generate a color map with a color for each community
@@ -57,8 +55,9 @@ def plot_graph_with_color(connection_matrix: nx.Graph, communities):
     # Draw the graph with the node colors, but without edges for now
     pos = nx.spring_layout(G)  # or use any other layout
     G_without_edges = nx.Graph()
-    G_without_edges.add_nodes_from(G.nodes)
-    nx.draw(G_without_edges, pos, node_color=color_list, with_labels=True, node_size=500, font_size=10, font_color='white')
+    G_without_edges.add_nodes_from(G.nodes(data=True))
+    labels = {node: data["name"] for node, data in G.nodes(data=True)}
+    nx.draw(G_without_edges, pos, node_color=color_list, with_labels=True, labels=labels, node_size=500, font_size=10, font_color='black')
 
     # Use edge opacity proportional to its weight
     weights = [G[u][v]['weight'] for u, v in G.edges()]
