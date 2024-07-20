@@ -13,6 +13,10 @@ def get_all_votes() -> pd.DataFrame:
     return pd.read_csv(__raw_data_path("all_vote_results.csv"))
 
 
+def get_all_mk_ids() -> pd.DataFrame:
+    return pd.read_csv(__raw_data_path("all_mk_ids.csv"))
+
+
 class VoteResultType(Enum):
     # see https://knesset.gov.il/Odata/Votes.svc/vote_result_type?$format=json
     CANCELLED = 0
