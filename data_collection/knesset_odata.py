@@ -47,6 +47,15 @@ class KnessetVotesCollector:
             "&$format=json"
         )
 
+    def get_all_vip_ids(self):
+        # This is the same ID provided in `vote_rslts_kmmbr_shadow`
+        return self.querier.do_query(
+            "View_Vote_MK_Individual"
+            "?$select=vip_id,mk_individual_id,mk_individual_name_eng,mk_individual_first_name_eng"
+            "&$orderby=vip_id"
+            "&$format=json"
+        )
+
     def get_all_vote_ids(self):
         # TODO
         pass
