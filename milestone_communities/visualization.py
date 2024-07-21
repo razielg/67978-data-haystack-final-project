@@ -152,7 +152,10 @@ def plot_graph_with_color(G: nx.Graph, communities):
     pos = nx.spring_layout(G, k=0.1)  # Use spring layout with a lower k to spread nodes further
 
     # Draw edges with a very light transparent color
-    nx.draw_networkx_edges(G, pos, edge_color='lightgray', alpha=0.3)  # Adjust alpha for transparency
+    weights = [G[u][v]["weight"] for u, v in G.edges]
+    max_weight, min_weight = max(weights), min(weights)
+    alpha_values = [0.3 * (w - min_weight) / (max_weight - min_weight) for w in weights]
+    nx.draw_networkx_edges(G, pos, edge_color='gray', alpha=alpha_values)  # Adjust alpha for transparency
 
     # Draw nodes with shapes
     for shape in shapes + ['*']:  # Include star shape
