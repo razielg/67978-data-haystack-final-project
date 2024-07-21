@@ -123,7 +123,9 @@ def main():
     G: nx.Graph = create_connection_graph(connection_matrix, idx_to_vip_id, vip_ids_and_names_dataframe, is_coalition_df)
     communities: list[set[int]] = detect_communities(G)
 
-    plot_graph_with_color(G, communities)
+    # Get the perfect random layout
+    for _ in range(10):
+        plot_graph_with_color(G, communities)
 
     # results for 23rd Knesset, compared to https://he.wikipedia.org/wiki/הכנסת_העשרים_ושלוש
     # community #1: 72 members, matches government
