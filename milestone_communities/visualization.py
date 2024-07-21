@@ -134,7 +134,7 @@ def plot_graph_with_color(G: nx.Graph, communities):
         shape = shapes[i % len(shapes)]  # Cycle through shapes if more communities than shapes
         for node in partition:
             if node in partition_heads_node_id_list:
-                node_shape_map[node] = '*'  # Set shape to star for partition heads
+                node_shape_map[node] = '*'  # Set shape to star for party leaders
             else:
                 node_shape_map[node] = shape
 
@@ -168,7 +168,7 @@ def plot_graph_with_color(G: nx.Graph, communities):
 
     # Create legend handles for colors
     color_patches = [
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=color, markersize=10, label=f'Community {i + 1}')
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=color, markersize=10, label=f'Detected Community #{i + 1}')
         for i, color in enumerate(colors)
     ]
 
@@ -179,13 +179,13 @@ def plot_graph_with_color(G: nx.Graph, communities):
     ]
     # Add star to legend
     shape_patches.append(
-        plt.Line2D([0], [0], marker='*', color='w', markerfacecolor='grey', markersize=15, label='Partition Heads')
+        plt.Line2D([0], [0], marker='*', color='w', markerfacecolor='grey', markersize=15, label='Party Leader')
     )
 
     # Combine legend handles and add legend
     patches = color_patches + shape_patches
     plt.legend(handles=patches, loc='best', fontsize=20)
-    plt.title("Colored Communities VS Shaped Coalition/Opposition", fontsize=30)
+    plt.title("Detected Communities (Color) VS Coalition/Opposition (Shape)", fontsize=30)
 
     # Show the plot
     plt.savefig("communities_visualization")
