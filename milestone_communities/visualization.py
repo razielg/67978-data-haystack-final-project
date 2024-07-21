@@ -1,3 +1,5 @@
+import os.path
+
 import numpy as np
 import networkx as nx
 from matplotlib import pyplot as plt
@@ -132,7 +134,7 @@ def plot_graph_with_color(G: nx.Graph, communities):
         shape = shapes[i % len(shapes)]  # Cycle through shapes if more communities than shapes
         for node in partition:
             if node in partition_heads_node_id_list:
-                node_shape_map[node] = '*'  # Set shape to star for partition heads
+                node_shape_map[node] = '*'  # Set shape to star for party leaders
             else:
                 node_shape_map[node] = shape
 
@@ -150,7 +152,10 @@ def plot_graph_with_color(G: nx.Graph, communities):
     pos = nx.spring_layout(G, k=0.1)  # Use spring layout with a lower k to spread nodes further
 
     # Draw edges with a very light transparent color
-    nx.draw_networkx_edges(G, pos, edge_color='lightgray', alpha=0.3)  # Adjust alpha for transparency
+    weights = [G[u][v]["weight"] for u, v in G.edges]
+    max_weight, min_weight = max(weights), min(weights)
+    alpha_values = [0.2 * (w - min_weight) / (max_weight - min_weight) for w in weights]
+    nx.draw_networkx_edges(G, pos, edge_color='black', alpha=alpha_values)  # Adjust alpha for transparency
 
     # Draw nodes with shapes
     for shape in shapes + ['*']:  # Include star shape
@@ -158,15 +163,20 @@ def plot_graph_with_color(G: nx.Graph, communities):
         shape_nodes = [node for node in G.nodes if node_shape_map.get(node) == shape]
         shape_colors = [node_color_map[node] for node in shape_nodes]
         shape_sizes = [node_size_map[node] for node in shape_nodes]
-        nx.draw_networkx_nodes(G, pos, nodelist=shape_nodes, node_color=shape_colors, node_shape=shape, node_size=shape_sizes)
+        edgecolor = "white" if shape == "*" else None
+
+        nx.draw_networkx_nodes(G, pos, nodelist=shape_nodes, node_color=shape_colors, node_shape=shape,
+                               node_size=shape_sizes, edgecolors=edgecolor)
 
     # Draw labels for nodes that are in partition_heads_node_id_list
     labels = {node: G.nodes[node]['name'] for node in partition_heads_node_id_list}
-    nx.draw_networkx_labels(G, pos, labels=labels, font_size=20, font_family='sans-serif', font_weight='bold')
+    labels_pos = {k: (x, y + .07) for k, (x, y) in pos.items()}
+    nx.draw_networkx_labels(G, labels_pos, labels=labels, font_size=20, font_family='sans-serif', font_weight='bold',
+                            font_color="black", bbox={"facecolor": "white", "alpha": 0.6})
 
     # Create legend handles for colors
     color_patches = [
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=color, markersize=10, label=f'Community {i + 1}')
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=color, markersize=10, label=f'Detected Community #{i + 1}')
         for i, color in enumerate(colors)
     ]
 
@@ -177,14 +187,16 @@ def plot_graph_with_color(G: nx.Graph, communities):
     ]
     # Add star to legend
     shape_patches.append(
-        plt.Line2D([0], [0], marker='*', color='w', markerfacecolor='grey', markersize=15, label='Partition Heads')
+        plt.Line2D([0], [0], marker='*', color='w', markerfacecolor='grey', markersize=15, label='Party Leader')
     )
 
     # Combine legend handles and add legend
     patches = color_patches + shape_patches
     plt.legend(handles=patches, loc='best', fontsize=20)
-    plt.title("Colored Communities VS Shaped Coalition/Opposition", fontsize=30)
+    plt.title("Detected Communities (Color) VS Coalition/Opposition (Shape)", fontsize=30)
+    plt.tight_layout()
 
     # Show the plot
+    plt.savefig("communities_visualization")
     plt.show()
 
