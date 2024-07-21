@@ -1,3 +1,5 @@
+import os.path
+
 import numpy as np
 import networkx as nx
 from matplotlib import pyplot as plt
@@ -186,5 +188,6 @@ def plot_graph_with_color(G: nx.Graph, communities):
     plt.title("Colored Communities VS Shaped Coalition/Opposition", fontsize=30)
 
     # Show the plot
+    plt.savefig("communities_visualization")
     plt.show()
 
