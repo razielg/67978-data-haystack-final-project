@@ -154,8 +154,8 @@ def plot_graph_with_color(G: nx.Graph, communities):
     # Draw edges with a very light transparent color
     weights = [G[u][v]["weight"] for u, v in G.edges]
     max_weight, min_weight = max(weights), min(weights)
-    alpha_values = [0.3 * (w - min_weight) / (max_weight - min_weight) for w in weights]
-    nx.draw_networkx_edges(G, pos, edge_color='gray', alpha=alpha_values)  # Adjust alpha for transparency
+    alpha_values = [0.2 * (w - min_weight) / (max_weight - min_weight) for w in weights]
+    nx.draw_networkx_edges(G, pos, edge_color='black', alpha=alpha_values)  # Adjust alpha for transparency
 
     # Draw nodes with shapes
     for shape in shapes + ['*']:  # Include star shape
@@ -163,11 +163,16 @@ def plot_graph_with_color(G: nx.Graph, communities):
         shape_nodes = [node for node in G.nodes if node_shape_map.get(node) == shape]
         shape_colors = [node_color_map[node] for node in shape_nodes]
         shape_sizes = [node_size_map[node] for node in shape_nodes]
-        nx.draw_networkx_nodes(G, pos, nodelist=shape_nodes, node_color=shape_colors, node_shape=shape, node_size=shape_sizes)
+        edgecolor = "white" if shape == "*" else None
+
+        nx.draw_networkx_nodes(G, pos, nodelist=shape_nodes, node_color=shape_colors, node_shape=shape,
+                               node_size=shape_sizes, edgecolors=edgecolor)
 
     # Draw labels for nodes that are in partition_heads_node_id_list
     labels = {node: G.nodes[node]['name'] for node in partition_heads_node_id_list}
-    nx.draw_networkx_labels(G, pos, labels=labels, font_size=20, font_family='sans-serif', font_weight='bold')
+    labels_pos = {k: (x, y + .07) for k, (x, y) in pos.items()}
+    nx.draw_networkx_labels(G, labels_pos, labels=labels, font_size=20, font_family='sans-serif', font_weight='bold',
+                            font_color="black", bbox={"facecolor": "white", "alpha": 0.6})
 
     # Create legend handles for colors
     color_patches = [
@@ -189,6 +194,7 @@ def plot_graph_with_color(G: nx.Graph, communities):
     patches = color_patches + shape_patches
     plt.legend(handles=patches, loc='best', fontsize=20)
     plt.title("Detected Communities (Color) VS Coalition/Opposition (Shape)", fontsize=30)
+    plt.tight_layout()
 
     # Show the plot
     plt.savefig("communities_visualization")
