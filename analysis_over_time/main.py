@@ -6,6 +6,8 @@ from matplotlib import pyplot as plt
 
 from data import datasets
 
+from communities_analysis import compute_communities_cosine_score
+
 
 def compute_division_index(votes: pd.DataFrame) -> float:
     """
@@ -14,7 +16,7 @@ def compute_division_index(votes: pd.DataFrame) -> float:
     :param votes: Vote results table. Assumes all votes are from the same Knesset.
     :return: The division index.
     """
-    return .5
+    return compute_communities_cosine_score(votes)
 
 
 def iter_by_knesset(
@@ -54,7 +56,7 @@ def main():
     division_index_vals = [(knesset, compute_division_index(res)) for (knesset, _, res) in iter_by_knesset(
         all_vote_details, all_vote_results)]
     x, y = zip(*division_index_vals)
-    plt.plot(x, y)
+    plt.plot(x, y, "ro")
     plt.show()
 
     # TODO compute monthly division index around 2nd Lebanon war, Protective Edge, and Guardian of the Walls + plot
