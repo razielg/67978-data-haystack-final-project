@@ -38,14 +38,35 @@ def iter_by_knesset(
 
 def iter_by_timeframe(
         vote_details: pd.DataFrame, vote_results: pd.DataFrame,
-        start: datetime.datetime, end: datetime.datetime, interval: datetime.datetime
+        start: datetime.datetime, end: datetime.datetime, interval: datetime.timedelta
 ) -> Iterable[tuple[datetime.datetime, pd.DataFrame, pd.DataFrame]]:
     """
     TODO
     Iterate over given votes (details and per-MK results), yielding a subset of votes from the same time interval
     on each iteration. Assumes both input dataframes are sorted with increasing vote_id.
     """
-    pass
+    df_time_format = "%Y-%m-%dT00:00:00"
+    vote_details = vote_details[vote_details["vote_date"] < end.strftime(df_time_format)]
+    while start <= end:
+        vote_details = vote_details[vote_details["vote_date"] >= start.strftime(df_time_format)]
+        relevant_vote_details = vote_details[vote_details["vote_date"] < end.strftime(df_time_format)]
+
+        vote_ids = relevant_vote_details["vote_id"].unique()
+        relevant_vote_results = vote_results[vote_results["vote_id"].isin(vote_ids)]
+
+        if len(relevant_vote_details["knesset_num"].unique()) != 1:
+            raise ValueError(
+                f"The timeframe {start}-{end} spans across multiple Knessets "
+                f"{relevant_vote_details['knesset_num'].unique()}")
+
+        yield start, relevant_vote_details, relevant_vote_results
+        start += interval
+
+
+def plot_division(division_index_vals: list[tuple[int | str, float]]):
+    x, y = zip(*division_index_vals)
+    plt.plot(x, y, "ro")
+    plt.show()
 
 
 def main():
@@ -55,12 +76,22 @@ def main():
     # Division index iver Knessets
     division_index_vals = [(knesset, compute_division_index(res)) for (knesset, _, res) in iter_by_knesset(
         all_vote_details, all_vote_results)]
-    x, y = zip(*division_index_vals)
-    plt.plot(x, y, "ro")
-    plt.show()
+    plot_division(division_index_vals)
 
     # TODO compute monthly division index around 2nd Lebanon war, Protective Edge, and Guardian of the Walls + plot
-    pass
+    lebanon2_start = datetime.datetime(2006, 5, 1)  # 12 / 07
+    lebanon2_end = datetime.datetime(2006, 11, 1)  # 14 / 08
+    monthly_interval = datetime.timedelta(days=31)  # TODO...
+    lebanon2_index_vals = [(date.month, compute_division_index(res)) for (date, _, res) in iter_by_timeframe(
+        all_vote_details, all_vote_results, lebanon2_start, lebanon2_end, monthly_interval)]
+    plot_division(lebanon2_index_vals)
+
+    protective_edge_start = datetime.datetime(2014, 5, 1)
+    protective_edge_end = datetime.datetime(2014, 12, 1)
+    monthly_interval = datetime.timedelta(days=31)  # TODO...
+    protective_edge_index_vals = [(date.month, compute_division_index(res)) for (date, _, res) in iter_by_timeframe(
+        all_vote_details, all_vote_results, protective_edge_start, protective_edge_end, monthly_interval)]
+    plot_division(protective_edge_index_vals)
 
 
 if __name__ == '__main__':
