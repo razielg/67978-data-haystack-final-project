@@ -90,7 +90,7 @@ def main():
     create_output_dir()
 
     kvg = KnessetVotesCollector(KNESSET_VOTES_SVC, logger)
-    get_all_vote_details(logger, kvg)
+    get_all_votes(logger, kvg)
 
 
 if __name__ == '__main__':
