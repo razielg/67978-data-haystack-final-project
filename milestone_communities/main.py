@@ -4,7 +4,7 @@ import networkx as nx
 import itertools
 
 from data.datasets import get_all_votes, VoteResultType, get_all_vip_ids, get_knesset23_is_coalition
-from visualization import plot_graph_with_color
+from .visualization import plot_graph_with_color
 
 
 def pivot_results(vote_results: pd.DataFrame, allowed_vote_values: set, min_votes: int) -> np.array:
