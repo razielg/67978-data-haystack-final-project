@@ -63,9 +63,20 @@ def iter_by_timeframe(
         start += interval
 
 
-def plot_division(division_index_vals: list[tuple[int | str, float]]):
+def plot_division(
+        division_index_vals: list[tuple[int | str, float]],
+        title: str, xlabel: str, ylabel: str = "Division Index",
+    ):
     x, y = zip(*division_index_vals)
     plt.plot(x, y, "ro")
+    plt.title(title, size=20)
+    plt.xlabel(xlabel, size=15)
+    plt.ylabel(ylabel, size=15)
+    plt.xticks(size=15)
+    plt.yticks(size=15)
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig(f"division_{title.lower().replace(' ', '_')}.png")
     plt.show()
 
 
@@ -76,22 +87,23 @@ def main():
     # Division index iver Knessets
     division_index_vals = [(knesset, compute_division_index(res)) for (knesset, _, res) in iter_by_knesset(
         all_vote_details, all_vote_results)]
-    plot_division(division_index_vals)
+    plot_division(division_index_vals, title="Division Index along the Years", xlabel="Knesset")
 
     # TODO compute monthly division index around 2nd Lebanon war, Protective Edge, and Guardian of the Walls + plot
+    monthly_interval = datetime.timedelta(days=31)  # TODO...
+
     lebanon2_start = datetime.datetime(2006, 5, 1)  # 12 / 07
     lebanon2_end = datetime.datetime(2006, 11, 1)  # 14 / 08
-    monthly_interval = datetime.timedelta(days=31)  # TODO...
     lebanon2_index_vals = [(date.month, compute_division_index(res)) for (date, _, res) in iter_by_timeframe(
         all_vote_details, all_vote_results, lebanon2_start, lebanon2_end, monthly_interval)]
-    plot_division(lebanon2_index_vals)
+    plot_division(lebanon2_index_vals, title="Second Lebanon War", xlabel="Month in 2006")
 
     protective_edge_start = datetime.datetime(2014, 5, 1)
     protective_edge_end = datetime.datetime(2014, 12, 1)
-    monthly_interval = datetime.timedelta(days=31)  # TODO...
     protective_edge_index_vals = [(date.month, compute_division_index(res)) for (date, _, res) in iter_by_timeframe(
         all_vote_details, all_vote_results, protective_edge_start, protective_edge_end, monthly_interval)]
-    plot_division(protective_edge_index_vals)
+    plot_division(protective_edge_index_vals, title="Operation Protective Edge",
+                  xlabel="Month in 2014")
 
 
 if __name__ == '__main__':
