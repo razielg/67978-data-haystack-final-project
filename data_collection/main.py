@@ -58,17 +58,39 @@ def get_all_vip_ids(logger, kvg: KnessetVotesCollector):
     logger.info("Done")
 
 
-def main():
+def get_all_vote_details(logger, kvg: KnessetVotesCollector):
+    logger.info("Starting to fetch all vote details")
 
-    logger = setup_logger()
+    votes_per_chunk = MAX_VOTE_ID
+    for i in tqdm.tqdm(range(0, MAX_VOTE_ID, votes_per_chunk)):
 
+        range_min = i
+        range_max = i + votes_per_chunk - 1
+
+        try:
+            res = kvg.get_vote_details_range(range_min, range_max)
+            res.to_csv(os.path.join(RESULTS_DIR, f"vd_{range_min:05d}_to_{range_max:05d}.csv"))
+        except OdataQueryException as e:  # don't get stuck if we don't succeed
+            logger.warning(f"Got {e} while getting votes {range_min:,}-{range_max:,}, skipping")
+            continue
+
+    logger.info("Done")
+
+
+def create_output_dir():
     try:
         os.mkdir(RESULTS_DIR)
     except FileExistsError:
         pass
 
+
+def main():
+
+    logger = setup_logger()
+    create_output_dir()
+
     kvg = KnessetVotesCollector(KNESSET_VOTES_SVC, logger)
-    get_all_vip_ids(logger, kvg)
+    get_all_votes(logger, kvg)
 
 
 if __name__ == '__main__':

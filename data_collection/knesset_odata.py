@@ -70,6 +70,14 @@ class KnessetVotesCollector:
             "vote_rslts_kmmbr_shadow"
             f"?$filter=vote_id lt {max_vote_id} and vote_id ge {min_vote_id}"
             "&$orderby=vote_id"
-            "&$select=vote_id,kmmbr_id,vote_result"
+            "&$select=vote_id,kmmbr_id,vote_result,knesset_num,faction_id"
+            "&$format=json"
+        )
+
+    def get_vote_details_range(self, min_vote_id: int, max_vote_id: int):
+        return self.querier.do_query(
+            "View_vote_rslts_hdr_Approved"
+            f"?$filter=vote_id lt {max_vote_id} and vote_id ge {min_vote_id}"
+            "&$orderby=vote_id"
             "&$format=json"
         )

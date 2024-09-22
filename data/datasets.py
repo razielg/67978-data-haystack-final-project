@@ -26,6 +26,10 @@ def get_knesset23_is_coalition() -> pd.DataFrame:
     return pd.read_csv(__raw_data_path("knesset23_coalition.csv"))
 
 
+def get_all_vote_details() -> pd.DataFrame:
+    return pd.read_csv(__raw_data_path("all_vote_details.csv"))
+
+
 class VoteResultType(Enum):
     # see https://knesset.gov.il/Odata/Votes.svc/vote_result_type?$format=json
     CANCELLED = 0
