@@ -65,13 +65,20 @@ def iter_by_timeframe(
 def plot_division(
         division_index_vals: list[tuple[int | str, float]],
         title: str, xlabel: str, ylabel: str = "Division Index",
+        xticks=None,
     ):
     x, y = zip(*division_index_vals)
     plt.plot(x, y, "ro")
     plt.title(title, size=20)
     plt.xlabel(xlabel, size=15)
     plt.ylabel(ylabel, size=15)
-    plt.xticks(size=15)
+
+    if xticks:
+        resolution = 1 if len(x) < 10 else 2
+        plt.xticks(size=15, labels=xticks[::resolution], ticks=x[::resolution], rotation=-25)
+    else:
+        plt.xticks(size=15)
+
     plt.yticks(size=15)
     plt.grid()
     plt.tight_layout()
@@ -79,15 +86,21 @@ def plot_division(
     plt.show()
 
 
-def plot_around_occasion(
+def plot_around_occasion_monthly(
         start: datetime.datetime, end: datetime.datetime,
         vote_details: pd.DataFrame, vote_results: pd.DataFrame,
         coalition_opposition_by_knesset: dict[int, pd.DataFrame],
-        title: str, xlabel:str = "Month", ylabel: str = "Division Index",
-        interval: datetime.timedelta = datetime.timedelta(days=31)):
+        title: str, xlabel:str = "Month", ylabel: str = "Division Index"):
+    xticks = list()
+    interval = datetime.timedelta(days=31)
+    curr_tick = start
+    while curr_tick <= end:
+        xticks.append(curr_tick.strftime("%m/%Y"))
+        curr_tick += interval
+
     index_vals = [(date.month, compute_division_index(res, coalition_opposition_by_knesset[knesset])) for (
         date, _, res, knesset) in iter_by_timeframe(vote_details, vote_results, start, end, interval)]
-    plot_division(index_vals, title=title, xlabel=xlabel, ylabel=ylabel)
+    plot_division(index_vals, title=title, xlabel=xlabel, ylabel=ylabel, xticks=xticks)
 
 
 def main():
@@ -106,7 +119,7 @@ def main():
 
     lebanon2_start = datetime.datetime(2006, 5, 1)  # 12 / 07
     lebanon2_end = datetime.datetime(2006, 11, 1)  # 14 / 08
-    plot_around_occasion(
+    plot_around_occasion_monthly(
         lebanon2_start, lebanon2_end, all_vote_details, all_vote_results,
         coalition_opposition_by_knesset,
         title="Second Lebanon War",
@@ -114,7 +127,7 @@ def main():
 
     protective_edge_start = datetime.datetime(2014, 5, 1)
     protective_edge_end = datetime.datetime(2014, 12, 1)
-    plot_around_occasion(
+    plot_around_occasion_monthly(
         protective_edge_start, protective_edge_end, all_vote_details, all_vote_results,
         coalition_opposition_by_knesset,
         title="Operation Protective Edge",
@@ -122,7 +135,7 @@ def main():
 
     disengagement_start = datetime.datetime(2005, 1, 1)
     disengagement_end = datetime.datetime(2005, 12, 1)
-    plot_around_occasion(
+    plot_around_occasion_monthly(
         disengagement_start, disengagement_end, all_vote_details, all_vote_results,
         coalition_opposition_by_knesset,
         title="The Disengagement from Gaza Strip",
