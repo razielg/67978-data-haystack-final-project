@@ -9,14 +9,14 @@ from data import datasets
 from communities_analysis import compute_communities_cosine_score
 
 
-def compute_division_index(votes: pd.DataFrame) -> float:
+def compute_division_index(votes: pd.DataFrame, coallition_opposition: pd.DataFrame) -> float:
     """
     TODO
     Compute the division index for a given votes dataframe.
     :param votes: Vote results table. Assumes all votes are from the same Knesset.
     :return: The division index.
     """
-    return compute_communities_cosine_score(votes)
+    return compute_communities_cosine_score(votes, coallition_opposition)
 
 
 def iter_by_knesset(
@@ -54,12 +54,11 @@ def iter_by_timeframe(
         vote_ids = relevant_vote_details["vote_id"].unique()
         relevant_vote_results = vote_results[vote_results["vote_id"].isin(vote_ids)]
 
-        if len(relevant_vote_details["knesset_num"].unique()) != 1:
-            raise ValueError(
-                f"The timeframe {start}-{end} spans across multiple Knessets "
-                f"{relevant_vote_details['knesset_num'].unique()}")
+        knessets = relevant_vote_details["knesset_num"].unique()
+        if len(knessets) != 1:
+            raise ValueError(f"The timeframe {start}-{end} spans across multiple Knessets {knessets}")
 
-        yield start, relevant_vote_details, relevant_vote_results
+        yield start, relevant_vote_details, relevant_vote_results, knessets[0]
         start += interval
 
 
@@ -80,13 +79,26 @@ def plot_division(
     plt.show()
 
 
+def plot_around_occasion(
+        start: datetime.datetime, end: datetime.datetime,
+        vote_details: pd.DataFrame, vote_results: pd.DataFrame,
+        coalition_opposition_by_knesset: dict[int, pd.DataFrame],
+        title: str, xlabel:str = "Month", ylabel: str = "Division Index",
+        interval: datetime.timedelta = datetime.timedelta(days=31)):
+    index_vals = [(date.month, compute_division_index(res, coalition_opposition_by_knesset[knesset])) for (
+        date, _, res, knesset) in iter_by_timeframe(vote_details, vote_results, start, end, interval)]
+    plot_division(index_vals, title=title, xlabel=xlabel, ylabel=ylabel)
+
+
 def main():
     all_vote_results = datasets.get_all_votes()
     all_vote_details = datasets.get_all_vote_details()
+    coalition_opposition_by_knesset = {kn: datasets.get_coallition_opposition(knesset_num=kn) for kn in range(16, 24)}
 
     # Division index iver Knessets
-    division_index_vals = [(knesset, compute_division_index(res)) for (knesset, _, res) in iter_by_knesset(
-        all_vote_details, all_vote_results)]
+    # TODO add coalition / opposition column and pass it to compute_division_index()
+    division_index_vals = [(knesset, compute_division_index(res, datasets.get_coallition_opposition(knesset))) for (
+        knesset, _, res) in iter_by_knesset(all_vote_details, all_vote_results)]
     plot_division(division_index_vals, title="Division Index along the Years", xlabel="Knesset")
 
     # TODO compute monthly division index around 2nd Lebanon war, Protective Edge, and Guardian of the Walls + plot
@@ -94,16 +106,27 @@ def main():
 
     lebanon2_start = datetime.datetime(2006, 5, 1)  # 12 / 07
     lebanon2_end = datetime.datetime(2006, 11, 1)  # 14 / 08
-    lebanon2_index_vals = [(date.month, compute_division_index(res)) for (date, _, res) in iter_by_timeframe(
-        all_vote_details, all_vote_results, lebanon2_start, lebanon2_end, monthly_interval)]
-    plot_division(lebanon2_index_vals, title="Second Lebanon War", xlabel="Month in 2006")
+    plot_around_occasion(
+        lebanon2_start, lebanon2_end, all_vote_details, all_vote_results,
+        coalition_opposition_by_knesset,
+        title="Second Lebanon War",
+    )
 
     protective_edge_start = datetime.datetime(2014, 5, 1)
     protective_edge_end = datetime.datetime(2014, 12, 1)
-    protective_edge_index_vals = [(date.month, compute_division_index(res)) for (date, _, res) in iter_by_timeframe(
-        all_vote_details, all_vote_results, protective_edge_start, protective_edge_end, monthly_interval)]
-    plot_division(protective_edge_index_vals, title="Operation Protective Edge",
-                  xlabel="Month in 2014")
+    plot_around_occasion(
+        protective_edge_start, protective_edge_end, all_vote_details, all_vote_results,
+        coalition_opposition_by_knesset,
+        title="Operation Protective Edge",
+    )
+
+    disengagement_start = datetime.datetime(2005, 1, 1)
+    disengagement_end = datetime.datetime(2005, 12, 1)
+    plot_around_occasion(
+        disengagement_start, disengagement_end, all_vote_details, all_vote_results,
+        coalition_opposition_by_knesset,
+        title="The Disengagement from Gaza Strip",
+    )
 
 
 if __name__ == '__main__':
