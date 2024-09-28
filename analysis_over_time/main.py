@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 
 from data import datasets
 
-from communities_analysis import compute_communities_cosine_score
+from communities_analysis import compute_division
 
 
 def compute_division_index(votes: pd.DataFrame, coallition_opposition: pd.DataFrame) -> float:
@@ -16,7 +16,7 @@ def compute_division_index(votes: pd.DataFrame, coallition_opposition: pd.DataFr
     :param votes: Vote results table. Assumes all votes are from the same Knesset.
     :return: The division index.
     """
-    return compute_communities_cosine_score(votes, coallition_opposition)
+    return compute_division(votes, coallition_opposition, method="cosine")
 
 
 def iter_by_knesset(
