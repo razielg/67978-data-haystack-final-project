@@ -60,27 +60,51 @@ def compute_score(votes: pd.DataFrame, coallition_opposition: pd.DataFrame, func
 
 
 def compute_phi_score(votes_matrix: np.array, set1: set[int], set2: set[int]) -> float:
-    pass
+    def single_vote_score(single_vote: np.array, set1: set[int], set2: set[int]):
+
+        # Count the agreements between coalition and opposition
+        coalition_against = (single_vote[list(set1)] == -1).sum()
+        coalition_in_favor = (single_vote[list(set1)] == 1).sum()
+        opposition_against = (single_vote[list(set2)] == -1).sum()
+        opposition_in_favor = (single_vote[list(set2)] == 1).sum()
+
+        # Calculate the total number of coalition and opposition members who participated in the vote
+        total_coalition = coalition_against + coalition_in_favor
+        total_opposition = opposition_against + opposition_in_favor
+        total_in_favor = coalition_in_favor + opposition_in_favor
+        total_against = coalition_against + opposition_against
+        total_participation = total_coalition + total_opposition
+
+        # Calculate the level of agreement/disagreement between coalition and opposition
+
+        # Division score: the more agreement, the higher the score
+        phi_c_o = abs((coalition_in_favor * opposition_against - coalition_against * opposition_in_favor) / np.sqrt(
+            total_in_favor * total_against * total_coalition * total_opposition + 1))
+
+        # Adjust the score by the total number of participants (i.e., 120 members vs fewer participants)
+        participation_factor = total_participation / 120
+        weighted_phi_c_o = phi_c_o * participation_factor
+
+        return weighted_phi_c_o
+
+    n_mks, n_votes = votes_matrix.shape
+    return sum(single_vote_score(votes_matrix[:, i], set1, set2) for i in range(n_votes)) / n_votes
 
 
 def compute_yuval_score(votes_matrix: np.array, set1: set[int], set2: set[int]) -> float:
 
-    def single_vote_score(votes_matrix: np.array, set1: set[int], set2: set[int]):
-        # Separate coalition and opposition votes
-        coalition_votes = valid_votes[valid_votes['is_coalition'] == 1]
-        opposition_votes = valid_votes[valid_votes['is_coalition'] == 0]
-
+    def single_vote_score(single_vote: np.array, set1: set[int], set2: set[int]):
         # Count the agreements between coalition and opposition
-        coalition_in_favor = (votes_matrix[list(set1)] == 1).sum()
-        coalition_against = (votes_matrix[list(set1)] == -1).sum()
-        opposition_in_favor = (votes_matrix[list(set2)] == 1).sum()
-        opposition_against = (votes_matrix[list(set2)] == -1).sum()
-
+        coalition_against = (single_vote[list(set1)] == -1).sum()
+        opposition_against = (single_vote[list(set2)] == -1).sum()
 
         # Calculate the total number of coalition and opposition members who participated in the vote
-        total_coalition = len(coalition_votes) + 1
-        total_opposition = len(opposition_votes) + 1
+        total_coalition = (single_vote[list(set1)] != 0).sum() + 1
+        total_opposition = (single_vote[list(set2)] != 0).sum()
         total_participation = total_coalition + total_opposition
+
+        if total_opposition == 0 or total_coalition == 0:
+            return 0
 
         # Division score: the more agreement, the higher the score
         yuv_score = (opposition_against / total_opposition - 0.5) * (

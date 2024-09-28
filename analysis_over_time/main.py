@@ -16,7 +16,7 @@ def compute_division_index(votes: pd.DataFrame, coallition_opposition: pd.DataFr
     :param votes: Vote results table. Assumes all votes are from the same Knesset.
     :return: The division index.
     """
-    return compute_division(votes, coallition_opposition, method="cosine")
+    return compute_division(votes, coallition_opposition, method="phi")
 
 
 def iter_by_knesset(
@@ -38,7 +38,8 @@ def iter_by_knesset(
 
 def iter_by_timeframe(
         vote_details: pd.DataFrame, vote_results: pd.DataFrame,
-        start: datetime.datetime, end: datetime.datetime, interval: datetime.timedelta
+        start: datetime.datetime, end: datetime.datetime, interval: datetime.timedelta,
+        allow_multiple_knessets: bool = False,
 ) -> Iterable[tuple[datetime.datetime, pd.DataFrame, pd.DataFrame]]:
     """
     TODO
@@ -48,20 +49,25 @@ def iter_by_timeframe(
     df_time_format = "%Y-%m-%dT00:00:00"
     vote_details = vote_details[vote_details["vote_date"] < end.strftime(df_time_format)]
     while start <= end:
+        curr_end = start + interval
         vote_details = vote_details[vote_details["vote_date"] >= start.strftime(df_time_format)]
-        relevant_vote_details = vote_details[vote_details["vote_date"] < end.strftime(df_time_format)]
+        relevant_vote_details = vote_details[vote_details["vote_date"] < curr_end.strftime(df_time_format)]
 
         vote_ids = relevant_vote_details["vote_id"].unique()
         relevant_vote_results = vote_results[vote_results["vote_id"].isin(vote_ids)]
 
         knessets = relevant_vote_details["knesset_num"].unique()
         if len(knessets) == 0:
-            start += interval
-            continue
-        elif len(knessets) != 1:
-            raise ValueError(f"The timeframe {start}-{end} spans across multiple Knessets {knessets}")
-
-        yield start, relevant_vote_details, relevant_vote_results, knessets[0]
+            pass
+        elif len(knessets) == 1:
+            yield start, relevant_vote_details, relevant_vote_results, knessets[0]
+        elif not allow_multiple_knessets:
+            raise ValueError(f"The timeframe {start}-{curr_end} spans across multiple Knessets {knessets}")
+        else:
+            for knesset in knessets:
+                vd = relevant_vote_details[relevant_vote_details["knesset_num"] == knesset]
+                vr = relevant_vote_results[relevant_vote_results["vote_id"].isin(relevant_vote_details["vote_id"].unique())]
+                yield start, vd, vr, knesset
         start += interval
 
 
@@ -73,7 +79,7 @@ def plot_division(
     ):
     x, y = zip(*division_index_vals)
     plt.bar([_x + .5 for _x in x], y, width=1, color="tab:blue", edgecolor="black", linewidth=.5)
-    plt.ylim(.3, 1.)
+    plt.ylim(0, 1)
     plt.title(title, size=20)
     plt.xlabel(xlabel, size=15)
     plt.ylabel(ylabel, size=15)
@@ -126,7 +132,30 @@ def plot_around_occasion_monthly(
         (int((date - start).days / 30) + start.month, compute_division_index(res, coalition_opposition_by_knesset[knesset])) for (
         date, _, res, knesset) in iter_by_timeframe(vote_details, vote_results, start, end, interval)
     ]
-    plot_division(index_vals, title=title, xlabel=xlabel, ylabel=ylabel, xticks=xticks, occasions=occasions)
+    plot_division(index_vals, title=title, xlabel=xlabel, ylabel=ylabel, xticks=xticks[:len(index_vals)], occasions=occasions)
+
+
+def plot_yearly(
+        vote_details: pd.DataFrame, vote_results: pd.DataFrame,
+        coalition_opposition_by_knesset: dict[int, pd.DataFrame],
+        occasions: list[tuple[float, str]] = None,
+):
+    years = list(range(2003, 2020 + 1))
+    start = datetime.datetime(years[0], 1, 1)
+    end = datetime.datetime(years[-1] + 1, 1, 1)
+    interval = datetime.timedelta(days=365)
+    values = dict()
+    for date, _, res, knesset in iter_by_timeframe(
+            vote_details, vote_results, start, end, interval, allow_multiple_knessets=True):
+        val = compute_division_index(vote_results, coalition_opposition_by_knesset[knesset])
+        if date.year in values:  # election year
+            division, num_votes = values[date.year]
+            new_votes = len(res["vote_id"].unique())
+            values[date.year] = (((new_votes * val + division * num_votes) / (new_votes + num_votes)), new_votes + num_votes)
+        else:
+            values[date.year] = (val, len(res["vote_id"].unique()))
+
+    plot_division(zip(years, (values[y][0] for y in years)), title="", xlabel="year", xticks=years)
 
 
 def main():
@@ -134,7 +163,8 @@ def main():
     all_vote_details = datasets.get_all_vote_details()
     coalition_opposition_by_knesset = {kn: datasets.get_coallition_opposition(knesset_num=kn) for kn in range(16, 24)}
 
-    # Division index iver Knessets
+    # Division index over Knessets
+    plot_yearly(all_vote_details, all_vote_results, coalition_opposition_by_knesset)
     # TODO add coalition / opposition column and pass it to compute_division_index()
     division_index_vals = [(knesset, compute_division_index(res, datasets.get_coallition_opposition(knesset))) for (
         knesset, _, res) in iter_by_knesset(all_vote_details, all_vote_results)]
@@ -149,7 +179,7 @@ def main():
         lebanon2_start, lebanon2_end, all_vote_details, all_vote_results,
         coalition_opposition_by_knesset,
         title="Second Lebanon War",
-        occasions=[(7 + 12 / 31, "War breaks out"), (8 + 14 / 30, "Ceasfire starts")]
+        occasions=[(7 + 12 / 31, "War breaks out"), (8 + 14 / 30, "Ceasefire starts")]
     )
 
     protective_edge_start = datetime.datetime(2014, 5, 1)
@@ -160,17 +190,9 @@ def main():
         title="Operation Protective Edge",
         occasions=[
             (6 + 12 / 30, 'Operation "Shuvu Ahim"'),
-            (7 + 17 / 31, "Ground Invasion Begins"),
+            (7 + 17 / 31, "Ground invasion begins"),
             (8 + 26 / 30, "Effective Ceasefire"),
         ]
-    )
-
-    disengagement_start = datetime.datetime(2005, 1, 1)
-    disengagement_end = datetime.datetime(2005, 12, 1)
-    plot_around_occasion_monthly(
-        disengagement_start, disengagement_end, all_vote_details, all_vote_results,
-        coalition_opposition_by_knesset,
-        title="The Disengagement from Gaza Strip",
     )
 
     covid_start = datetime.datetime(2020, 2, 1)
