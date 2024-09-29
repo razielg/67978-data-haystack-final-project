@@ -9,23 +9,6 @@ from data.datasets import VoteResultType
 from milestone_communities.main import pivot_results, compute_connections, detect_communities
 
 
-def _get_communities(votes_matrix: np.array) -> list[set[int]]:
-
-    connections_matrix = compute_connections(votes_matrix)
-
-    assert connections_matrix.shape[0] == connections_matrix.shape[1]
-
-    idx = list(range(connections_matrix.shape[0]))
-
-    G: nx.Graph = nx.Graph()
-    G.add_nodes_from(idx)
-    G.add_weighted_edges_from(
-        ((idx[i], idx[j], connections_matrix[i, j]) for i, j in itertools.product(
-            range(len(idx)), repeat=2) if i < j))
-
-    return detect_communities(G)
-
-
 def _generate_connection_matrix(votes: pd.DataFrame) -> tuple[np.array, list[int]]:
     pivot, idx_to_vip_id = pivot_results(
         votes,
@@ -40,6 +23,11 @@ def _generate_connection_matrix(votes: pd.DataFrame) -> tuple[np.array, list[int
 
 
 def _compute_cosine_dist(votes_matrix: np.array, set1: set[int], set2: set[int]) -> float:
+    """
+    Good old cosine distance. Both the opposition and the coalition are represented as a vector,
+    whose length is the number of votes, and the i-th entry is the net support (for minus against)
+    for the i-th vote.
+    """
     votes_matrix = votes_matrix.astype(np.float64)
     avg_vote1 = votes_matrix[list(set1), :].sum(axis=0)
     avg_vote2 = votes_matrix[list(set2), :].sum(axis=0)
@@ -60,6 +48,9 @@ def compute_score(votes: pd.DataFrame, coallition_opposition: pd.DataFrame, func
 
 
 def compute_phi_score(votes_matrix: np.array, set1: set[int], set2: set[int]) -> float:
+    """
+    See PDF for explanation
+    """
     def single_vote_score(single_vote: np.array, set1: set[int], set2: set[int]):
 
         # Count the agreements between coalition and opposition
@@ -92,6 +83,9 @@ def compute_phi_score(votes_matrix: np.array, set1: set[int], set2: set[int]) ->
 
 
 def compute_yuval_score(votes_matrix: np.array, set1: set[int], set2: set[int]) -> float:
+    """
+    See PDF for explanation
+    """
 
     def single_vote_score(single_vote: np.array, set1: set[int], set2: set[int]):
         # Count the agreements between coalition and opposition
@@ -124,6 +118,9 @@ def compute_division(
     coallition_opposition: pd.DataFrame,
     method: Literal["cosine", "phi", "Yuval"]
 ) -> float:
+    """
+    Wrapper function to compute division value
+    """
 
     if len(votes) == 0:
         return 0
