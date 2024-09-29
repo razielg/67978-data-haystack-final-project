@@ -6,12 +6,11 @@ from matplotlib import pyplot as plt
 
 from data import datasets
 
-from communities_analysis import compute_division
+from division_score import compute_division
 
 
 def compute_division_index(votes: pd.DataFrame, coallition_opposition: pd.DataFrame) -> float:
     """
-    TODO
     Compute the division index for a given votes dataframe.
     :param votes: Vote results table. Assumes all votes are from the same Knesset.
     :return: The division index.
@@ -42,7 +41,6 @@ def iter_by_timeframe(
         allow_multiple_knessets: bool = False,
 ) -> Iterable[tuple[datetime.datetime, pd.DataFrame, pd.DataFrame]]:
     """
-    TODO
     Iterate over given votes (details and per-MK results), yielding a subset of votes from the same time interval
     on each iteration. Assumes both input dataframes are sorted with increasing vote_id.
     """
@@ -76,10 +74,13 @@ def plot_division(
         title: str, xlabel: str, ylabel: str = "Division Index",
         xticks: list[str] = None,
         occasions: list[tuple[int, str]] = None,
+        width=2,
     ):
+    plt.rc("axes", axisbelow=True)
+    plt.grid()
     x, y = zip(*division_index_vals)
-    plt.bar([_x + .5 for _x in x], y, width=1, color="tab:blue", edgecolor="black", linewidth=.5)
-    plt.ylim(0, 1)
+    plt.bar([_x + width / 2 for _x in x], y, width=width, color="tab:blue", edgecolor="black", linewidth=.5)
+    plt.ylim(0, .6)
     plt.title(title, size=20)
     plt.xlabel(xlabel, size=15)
     plt.ylabel(ylabel, size=15)
@@ -99,16 +100,14 @@ def plot_division(
             plt.axvline(x=occ_x, color="black", linestyle='--')
             plt.annotate(
                 occ_label,
-                xy=(occ_x, .82 + y_off[i]),
-                xytext=(occ_x - 1.3, .9 + ytext_off[i]),
+                xy=(occ_x, .42 + y_off[i]),
+                xytext=(occ_x - 2.5, .5 + ytext_off[i]),
                 bbox=dict(facecolor="white", alpha=0.8, linewidth=.5),
                 arrowprops=dict(arrowstyle="->", color="black"),
                 fontsize=14,
                 color='black',
             )
 
-    plt.rc("axes", axisbelow=True)
-    plt.grid()
     plt.tight_layout()
     plt.savefig(f"division_{title.lower().replace(' ', '_')}.png")
     plt.show()
@@ -122,7 +121,7 @@ def plot_around_occasion_monthly(
         occasions: list[tuple[float, str]] = None,
 ):
     xticks = list()
-    interval = datetime.timedelta(days=31)
+    interval = datetime.timedelta(days=61)
     curr_tick = start
     while curr_tick <= end:
         xticks.append(curr_tick.strftime("%m/%Y"))
@@ -135,44 +134,17 @@ def plot_around_occasion_monthly(
     plot_division(index_vals, title=title, xlabel=xlabel, ylabel=ylabel, xticks=xticks[:len(index_vals)], occasions=occasions)
 
 
-def plot_yearly(
-        vote_details: pd.DataFrame, vote_results: pd.DataFrame,
-        coalition_opposition_by_knesset: dict[int, pd.DataFrame],
-        occasions: list[tuple[float, str]] = None,
-):
-    years = list(range(2003, 2020 + 1))
-    start = datetime.datetime(years[0], 1, 1)
-    end = datetime.datetime(years[-1] + 1, 1, 1)
-    interval = datetime.timedelta(days=365)
-    values = dict()
-    for date, _, res, knesset in iter_by_timeframe(
-            vote_details, vote_results, start, end, interval, allow_multiple_knessets=True):
-        val = compute_division_index(vote_results, coalition_opposition_by_knesset[knesset])
-        if date.year in values:  # election year
-            division, num_votes = values[date.year]
-            new_votes = len(res["vote_id"].unique())
-            values[date.year] = (((new_votes * val + division * num_votes) / (new_votes + num_votes)), new_votes + num_votes)
-        else:
-            values[date.year] = (val, len(res["vote_id"].unique()))
-
-    plot_division(zip(years, (values[y][0] for y in years)), title="", xlabel="year", xticks=years)
-
-
 def main():
     all_vote_results = datasets.get_all_votes()
     all_vote_details = datasets.get_all_vote_details()
     coalition_opposition_by_knesset = {kn: datasets.get_coallition_opposition(knesset_num=kn) for kn in range(16, 24)}
 
     # Division index over Knessets
-    # TODO add coalition / opposition column and pass it to compute_division_index()
     division_index_vals = [(knesset, compute_division_index(res, datasets.get_coallition_opposition(knesset))) for (
         knesset, _, res) in iter_by_knesset(all_vote_details, all_vote_results)]
-    plot_division(division_index_vals, title="Division Index along the Years", xlabel="Knesset")
+    plot_division(division_index_vals, title="", xlabel="Knesset", width=1)
 
-    # TODO compute monthly division index around 2nd Lebanon war, Protective Edge, and Guardian of the Walls + plot
-    monthly_interval = datetime.timedelta(days=31)  # TODO...
-
-    lebanon2_start = datetime.datetime(2006, 3, 1)  # 12 / 07
+    lebanon2_start = datetime.datetime(2006, 5, 1)  # 12 / 07
     lebanon2_end = datetime.datetime(2006, 12, 1)  # 14 / 08
     plot_around_occasion_monthly(
         lebanon2_start, lebanon2_end, all_vote_details, all_vote_results,
@@ -181,7 +153,7 @@ def main():
         occasions=[(7 + 12 / 31, "War breaks out"), (8 + 14 / 30, "Ceasefire starts")]
     )
 
-    protective_edge_start = datetime.datetime(2014, 5, 1)
+    protective_edge_start = datetime.datetime(2014, 3, 1)
     protective_edge_end = datetime.datetime(2014, 12, 1)
     plot_around_occasion_monthly(
         protective_edge_start, protective_edge_end, all_vote_details, all_vote_results,
@@ -190,16 +162,16 @@ def main():
         occasions=[
             (6 + 12 / 30, 'Operation "Shuvu Ahim"'),
             (7 + 17 / 31, "Ground invasion begins"),
-            (8 + 26 / 30, "Effective Ceasefire"),
+            (8 + 26 / 30, "Effective ceasefire"),
         ]
     )
 
-    covid_start = datetime.datetime(2020, 2, 1)
-    covid_end = datetime.datetime(2020, 9, 1)
+    covid_start = datetime.datetime(2020, 4, 1)
+    covid_end = datetime.datetime(2020, 11, 1)
     plot_around_occasion_monthly(
         covid_start, covid_end, all_vote_details, all_vote_results,
         coalition_opposition_by_knesset,
-        title="Covid Pandemic",
+        title="COVID Pandemic",
         occasions=[
             (3 + 20 / 31, "First Lockdown"),
             (5 + 3 / 31, "Schools Reopen"),
@@ -207,15 +179,15 @@ def main():
         ]
     )
 
-    subprime_start = datetime.datetime(2008, 7, 1)
-    subprime_end = datetime.datetime(2009, 1, 1)
+    subprime_start = datetime.datetime(2008, 5, 1)
+    subprime_end = datetime.datetime(2008, 12, 31)
     plot_around_occasion_monthly(
         subprime_start, subprime_end, all_vote_details, all_vote_results,
         coalition_opposition_by_knesset,
         title="Subprime Crisis",
         occasions=[
-            (9 + 15 / 30, "Lehman Brothers defunct"),
-            (12 + 25 / 31, "Tel Aviv 100 lowest point"),
+            (9 + 15 / 30, "Lehman Brothers defuncts"),
+            (12 + 25 / 31, "Tel Aviv 100 index\nreaches lowest value"),
         ]
     )
 
