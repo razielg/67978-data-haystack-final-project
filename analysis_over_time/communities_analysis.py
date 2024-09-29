@@ -124,6 +124,10 @@ def compute_division(
     coallition_opposition: pd.DataFrame,
     method: Literal["cosine", "phi", "Yuval"]
 ) -> float:
+
+    if len(votes) == 0:
+        return 0
+
     method_to_func = {
         "cosine": _compute_cosine_dist,
         "phi": compute_phi_score,

@@ -58,7 +58,7 @@ def iter_by_timeframe(
 
         knessets = relevant_vote_details["knesset_num"].unique()
         if len(knessets) == 0:
-            pass
+            yield start, relevant_vote_details, relevant_vote_results, 23  # 23 is just a default
         elif len(knessets) == 1:
             yield start, relevant_vote_details, relevant_vote_results, knessets[0]
         elif not allow_multiple_knessets:
@@ -164,7 +164,6 @@ def main():
     coalition_opposition_by_knesset = {kn: datasets.get_coallition_opposition(knesset_num=kn) for kn in range(16, 24)}
 
     # Division index over Knessets
-    plot_yearly(all_vote_details, all_vote_results, coalition_opposition_by_knesset)
     # TODO add coalition / opposition column and pass it to compute_division_index()
     division_index_vals = [(knesset, compute_division_index(res, datasets.get_coallition_opposition(knesset))) for (
         knesset, _, res) in iter_by_knesset(all_vote_details, all_vote_results)]
@@ -173,8 +172,8 @@ def main():
     # TODO compute monthly division index around 2nd Lebanon war, Protective Edge, and Guardian of the Walls + plot
     monthly_interval = datetime.timedelta(days=31)  # TODO...
 
-    lebanon2_start = datetime.datetime(2006, 5, 1)  # 12 / 07
-    lebanon2_end = datetime.datetime(2006, 11, 1)  # 14 / 08
+    lebanon2_start = datetime.datetime(2006, 3, 1)  # 12 / 07
+    lebanon2_end = datetime.datetime(2006, 12, 1)  # 14 / 08
     plot_around_occasion_monthly(
         lebanon2_start, lebanon2_end, all_vote_details, all_vote_results,
         coalition_opposition_by_knesset,
@@ -183,7 +182,7 @@ def main():
     )
 
     protective_edge_start = datetime.datetime(2014, 5, 1)
-    protective_edge_end = datetime.datetime(2014, 11, 1)
+    protective_edge_end = datetime.datetime(2014, 12, 1)
     plot_around_occasion_monthly(
         protective_edge_start, protective_edge_end, all_vote_details, all_vote_results,
         coalition_opposition_by_knesset,
@@ -196,7 +195,7 @@ def main():
     )
 
     covid_start = datetime.datetime(2020, 2, 1)
-    covid_end = datetime.datetime(2020, 12, 1)
+    covid_end = datetime.datetime(2020, 9, 1)
     plot_around_occasion_monthly(
         covid_start, covid_end, all_vote_details, all_vote_results,
         coalition_opposition_by_knesset,
